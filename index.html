@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>InvestSmart</title>
+  <link rel="stylesheet" href="assets/css/styles.css">
+</head>
+<body>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+  <main class="landing-shell">
+    <section id="home-panel" class="home-panel">
+      <div class="home-copy">
+        <p class="eyebrow">Smart bank investment matching</p>
+        <h1>InvestSmart</h1>
+        <p class="home-lead">Turn salary, savings, risk tolerance, and investment goals into a clear bank recommendation with contact details, website links, saved plans, and printable reports.</p>
+        <div class="home-actions">
+          <button class="primary" data-open-auth="register">Sign Up</button>
+          <button class="secondary" data-open-auth="login">Sign In</button>
+          <button class="secondary" data-open-auth="admin">Admin Login</button>
+        </div>
+        <div class="home-trust">
+          <span>Financial profile</span>
+          <span>Bank matching</span>
+          <span>Reports</span>
+        </div>
+      </div>
+      <div class="home-visual" aria-label="InvestSmart system overview graphic">
+        <div class="visual-card visual-summary">
+          <div>
+            <span class="mini-label">Net salary</span>
+            <strong>R 18,450</strong>
+          </div>
+          <div class="mini-chart">
+            <span style="height: 46%"></span>
+            <span style="height: 72%"></span>
+            <span style="height: 58%"></span>
+            <span style="height: 86%"></span>
+          </div>
+        </div>
+        <div class="visual-flow">
+          <div class="flow-node active-node">
+            <span>1</span>
+            <strong>Profile</strong>
+            <small>Age + finances</small>
+          </div>
+          <div class="flow-line"></div>
+          <div class="flow-node">
+            <span>2</span>
+            <strong>Calculator</strong>
+            <small>Risk + horizon</small>
+          </div>
+          <div class="flow-line"></div>
+          <div class="flow-node">
+            <span>3</span>
+            <strong>Best Bank</strong>
+            <small>Link + contact</small>
+          </div>
+        </div>
+        <div class="visual-card bank-card">
+          <div class="bank-logo">B</div>
+          <div>
+            <span class="mini-label">Recommended bank</span>
+            <strong>Best match found</strong>
+            <p>Expected return, liquidity, and plan type are scored against your inputs.</p>
+          </div>
+        </div>
+        <div class="visual-card visual-report">
+          <span class="mini-label">Saved plan report</span>
+          <div class="report-lines">
+            <span></span>
+            <span></span>
+            <span></span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="auth-panel" class="auth-panel hidden">
+      <div>
+        <p class="eyebrow">Financial management</p>
+        <h1>InvestSmart</h1>
+        <p id="auth-message" class="muted">Plan investments, track finances, and keep reports in one clean workspace.</p>
+      </div>
+      <div class="auth-tabs">
+        <button class="tab-btn active" data-auth-tab="login">Sign in</button>
+        <button class="tab-btn" data-auth-tab="register">Sign up</button>
+        <button class="tab-btn" data-auth-tab="admin">Admin</button>
+      </div>
+
+      <form id="login-form" class="form-grid auth-form">
+        <label>Email <input name="email" type="email" required autocomplete="email"></label>
+        <label>Password <input name="password" type="password" required autocomplete="current-password"></label>
+        <button class="primary" type="submit">Sign in</button>
+        <p class="hint">Admin demo: admin@investsmart.local / password</p>
+      </form>
+
+      <form id="register-form" class="form-grid auth-form hidden">
+        <label>Full names <input name="full_name" required></label>
+        <label>Surname <input name="surname" required></label>
+        <label>ID number <input name="id_number" required minlength="6"></label>
+        <label>Email <input name="email" type="email" required></label>
+        <label>Password <input name="password" type="password" required minlength="6"></label>
+        <label>Confirm password <input name="confirm_password" type="password" required minlength="6"></label>
+        <button class="primary" type="submit">Create account</button>
+      </form>
+
+      <form id="admin-login-form" class="form-grid auth-form hidden">
+        <label>Admin Email <input name="email" type="email" required autocomplete="email"></label>
+        <label>Password <input name="password" type="password" required autocomplete="current-password"></label>
+        <button class="primary" type="submit">Admin sign in</button>
+      </form>
+      <button id="back-home" class="ghost dark-ghost" type="button">Back to home</button>
+    </section>
+  </main>
+
+  <script src="assets/js/env.js"></script>
+  <script src="assets/js/api.js"></script>
+  <script src="assets/js/auth.js"></script>
+</body>
+</html>
