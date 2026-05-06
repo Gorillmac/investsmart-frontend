@@ -1,13 +1,20 @@
 const apiBase = localStorage.getItem("investsmart_api_base") || window.INVESTSMART_API_BASE || "../backend/api/index.php";
+const authTokenKey = "investsmart_auth_token";
 
 const $ = (selector) => document.querySelector(selector);
 const money = (value) => `R ${Number(value || 0).toLocaleString("en-ZA", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 const escapeHtml = (value) => String(value ?? "").replace(/[&<>"']/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[char]));
 
 async function api(action, options = {}) {
+  const headers = { "Content-Type": "application/json", "ngrok-skip-browser-warning": "true" };
+  const token = localStorage.getItem(authTokenKey);
+  if (token) {
+    headers.Authorization = `Bearer ${token}`;
+    headers["X-Auth-Token"] = token;
+  }
   const response = await fetch(`${apiBase}?action=${action}`, {
     method: options.method || "GET",
-    headers: { "Content-Type": "application/json" },
+    headers,
     credentials: "include",
     body: options.body ? JSON.stringify(options.body) : undefined,
   });
@@ -36,8 +43,17 @@ function initials(user) {
 }
 
 async function logout() {
+  localStorage.removeItem(authTokenKey);
   await api("logout");
   window.location.href = "index.html";
+}
+
+function setAuthToken(token) {
+  if (token) {
+    localStorage.setItem(authTokenKey, token);
+  } else {
+    localStorage.removeItem(authTokenKey);
+  }
 }
 
 function drawPie(canvasId, data) {

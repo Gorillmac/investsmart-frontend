@@ -1,1 +1,1 @@
-window.INVESTSMART_API_BASE = window.INVESTSMART_API_BASE || "../backend/api/index.php";
+window.INVESTSMART_API_BASE = "https://chase-frying-applicant.ngrok-free.dev/investsmart/backend/api/index.php";

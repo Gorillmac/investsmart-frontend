@@ -19,6 +19,7 @@ $("#login-form").addEventListener("submit", async (event) => {
   event.preventDefault();
   try {
     const payload = await api("login", { method: "POST", body: formData(event.currentTarget) });
+    setAuthToken(payload.token);
     window.location.href = payload.user.role === "admin" ? "admin-dashboard.html" : "dashboard.html";
   } catch (error) {
     showToast(error.message, true);
@@ -29,6 +30,7 @@ $("#admin-login-form").addEventListener("submit", async (event) => {
   event.preventDefault();
   try {
     const payload = await api("login", { method: "POST", body: formData(event.currentTarget) });
+    setAuthToken(payload.token);
     if (payload.user.role !== "admin") {
       await logout();
       return;
@@ -42,7 +44,8 @@ $("#admin-login-form").addEventListener("submit", async (event) => {
 $("#register-form").addEventListener("submit", async (event) => {
   event.preventDefault();
   try {
-    await api("register", { method: "POST", body: formData(event.currentTarget) });
+    const payload = await api("register", { method: "POST", body: formData(event.currentTarget) });
+    setAuthToken(payload.token);
     await api("logout");
     event.currentTarget.reset();
     setAuthMode("login", "Registration successful! Please log in.");
