@@ -40,9 +40,11 @@ function cards(items) {
 
 async function adminDashboard() {
   const report = await api("admin-report");
-  $("#content").innerHTML = `${cards([{ label: "Total Users", value: report.metrics.total_users }, { label: "Total Savings", value: money(report.metrics.total_savings) }, { label: "Total Plans", value: report.metrics.total_plans }, { label: "Risk Groups", value: report.risk.length }])}
-    <div class="grid-2"><section class="panel"><h2>Risk Distribution</h2><div class="chart-box"><canvas id="admin-risk-chart"></canvas></div></section><section class="panel"><h2>Quick Links</h2><div class="quick-actions"><button class="secondary" data-jump="admin-users">Users</button><button class="secondary" data-jump="admin-banks">Banks</button><button class="secondary" data-jump="admin-reports">Reports</button></div></section></div>`;
+  $("#content").innerHTML = `${cards([{ label: "Total Users", value: report.metrics.total_users }, { label: "Total Savings", value: money(report.metrics.total_savings) }, { label: "Total Plans", value: report.metrics.total_plans }, { label: "Average Plan", value: money(report.metrics.average_plan_amount) }])}
+    <div class="grid-2"><section class="panel"><h2>Risk Distribution</h2><div class="chart-box"><canvas id="admin-risk-chart"></canvas></div></section><section class="panel"><h2>Popular Banks</h2><div class="chart-box"><canvas id="admin-bank-chart"></canvas></div></section></div>
+    <section class="panel" style="margin-top:18px"><h2>Quick Links</h2><div class="quick-actions"><button class="secondary" data-jump="admin-users">Users</button><button class="secondary" data-jump="admin-banks">Banks</button><button class="secondary" data-jump="admin-reports">Reports</button></div></section>`;
   drawPie("admin-risk-chart", report.risk.map((row) => [row.risk, row.total, colorForRisk(row.risk)]));
+  drawBar("admin-bank-chart", report.banks.map((row) => row.label || "Unknown"), report.banks.map((row) => row.total), "#0f8b8d");
   document.querySelectorAll("[data-jump]").forEach((btn) => btn.addEventListener("click", () => navigateAdmin(btn.dataset.jump)));
 }
 
@@ -114,15 +116,43 @@ function bankForm() {
 
 async function adminReports() {
   const report = await api("admin-report");
-  $("#content").innerHTML = `<div class="section-head"><div></div><button class="primary" id="print-admin-report">Print Report</button></div>${cards([{ label: "Total Users", value: report.metrics.total_users }, { label: "Total Savings", value: money(report.metrics.total_savings) }, { label: "Total Plans", value: report.metrics.total_plans }, { label: "Segments", value: "Age, Risk, Plan" }])}<section class="panel" style="margin-top:18px"><h2>System Risk Distribution</h2><div class="chart-box"><canvas id="system-risk-chart"></canvas></div></section>`;
+  $("#content").innerHTML = `<div class="section-head"><div></div><button class="primary" id="download-admin-pdf">Download PDF</button><button class="secondary" id="print-admin-report">Print Report</button></div>${cards([{ label: "Total Users", value: report.metrics.total_users }, { label: "Total Savings", value: money(report.metrics.total_savings) }, { label: "Total Plans", value: report.metrics.total_plans }, { label: "Average Plan", value: money(report.metrics.average_plan_amount) }])}
+  <div class="grid-2"><section class="panel"><h2>System Risk Distribution</h2><div class="chart-box"><canvas id="system-risk-chart"></canvas></div></section><section class="panel"><h2>Age Group Distribution</h2><div class="chart-box"><canvas id="age-group-chart"></canvas></div></section></div>
+  <div class="grid-2"><section class="panel"><h2>Plan Type Analytics</h2><div class="chart-box"><canvas id="plan-type-chart"></canvas></div></section><section class="panel"><h2>Bank Analytics</h2><div class="chart-box"><canvas id="bank-analytics-chart"></canvas></div></section></div>`;
   drawPie("system-risk-chart", report.risk.map((row) => [row.risk, row.total, colorForRisk(row.risk)]));
+  drawBar("age-group-chart", report.age_groups.map((row) => row.label), report.age_groups.map((row) => row.total), "#f2a541");
+  drawBar("plan-type-chart", report.plan_types.map((row) => row.label || "Unknown"), report.plan_types.map((row) => row.total), "#0f8b8d");
+  drawBar("bank-analytics-chart", report.banks.map((row) => row.label || "Unknown"), report.banks.map((row) => row.total), "#18212f");
   $("#print-admin-report").addEventListener("click", () => window.print());
+  $("#download-admin-pdf").addEventListener("click", () => downloadAdminPdf(report));
 }
 
 function wireSearch() {
   const search = $("[data-search-table]");
   if (!search) return;
   search.addEventListener("input", () => document.querySelectorAll("tbody tr").forEach((row) => row.classList.toggle("hidden", !row.textContent.toLowerCase().includes(search.value.toLowerCase()))));
+}
+
+function downloadAdminPdf(report) {
+  if (!window.jspdf) {
+    window.print();
+    return;
+  }
+
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF();
+  doc.setFontSize(18);
+  doc.text("InvestSmart Admin Report", 14, 18);
+  doc.setFontSize(11);
+  doc.text(`Total users: ${report.metrics.total_users}`, 14, 32);
+  doc.text(`Total savings: ${money(report.metrics.total_savings)}`, 14, 40);
+  doc.text(`Total plans: ${report.metrics.total_plans}`, 14, 48);
+  doc.text(`Average plan amount: ${money(report.metrics.average_plan_amount)}`, 14, 56);
+  doc.text("Top banks:", 14, 70);
+  report.banks.slice(0, 5).forEach((row, index) => doc.text(`${row.label || "Unknown"} - ${row.total}`, 20, 78 + (index * 8)));
+  doc.text("Risk distribution:", 110, 70);
+  report.risk.forEach((row, index) => doc.text(`${row.risk} - ${row.total}`, 116, 78 + (index * 8)));
+  doc.save("investsmart-admin-report.pdf");
 }
 
 adminBoot().catch((error) => showToast(error.message, true));

@@ -9,6 +9,18 @@ const userNav = [
   ["report", "My Report", "#", "Printable financial profile, plans, banks, and risk summary.", "my-report.html"],
 ];
 
+function projectedTotalValue(plan) {
+  const months = plan.duration_months || (plan.horizon === "Long" ? 60 : plan.horizon === "Medium" ? 36 : 12);
+  const principal = Number(plan.investment_amount || 0);
+  const monthlyContribution = Number(plan.monthly_amount || 0);
+  const monthlyRate = Number(plan.expected_return || 0) / 100 / 12;
+  const principalFutureValue = principal * Math.pow(1 + monthlyRate, months);
+  const contributionFutureValue = monthlyContribution > 0
+    ? (monthlyRate === 0 ? monthlyContribution * months : monthlyContribution * ((Math.pow(1 + monthlyRate, months) - 1) / monthlyRate))
+    : 0;
+  return principalFutureValue + contributionFutureValue;
+}
+
 async function userBoot() {
   const me = await api("me");
   if (!me.user) return window.location.href = "index.html";
@@ -62,8 +74,9 @@ function cards(items) {
 
 function dashboard() {
   const finance = userState.finance || {};
+  const projectedPortfolioValue = userState.plans.reduce((sum, plan) => sum + projectedTotalValue(plan), 0);
   $("#content").innerHTML = `
-    ${cards([{ label: "Net Salary", value: money(finance.net_salary) }, { label: "Current Savings", value: money(finance.current_savings) }, { label: "Active Plans", value: userState.plans.length }, { label: "Age", value: userState.user.age || "N/A" }])}
+    ${cards([{ label: "Net Salary", value: money(finance.net_salary) }, { label: "Current Savings", value: money(finance.current_savings) }, { label: "Projected Portfolio", value: money(projectedPortfolioValue) }, { label: "Age", value: userState.user.age || "N/A" }])}
     <div class="grid-2">
       <section class="panel"><h2>Financial Analytics</h2><div class="chart-box"><canvas id="finance-chart"></canvas></div></section>
       <section class="panel"><h2>Investment Distribution</h2><div class="chart-box"><canvas id="plans-bar-chart"></canvas></div></section>
@@ -128,8 +141,8 @@ function calculator() {
     userState.recommendations = payload.recommendations || [];
     const item = userState.recommendations[0];
     if (!item) return $("#recommendations").innerHTML = `<p class="muted">No matching bank found.</p>`;
-    $("#recommendations").innerHTML = `<article class="recommendation-card"><header><strong>${escapeHtml(item.bank_name)}</strong><span class="badge good">Score ${item.score}/5</span></header>
-      <div class="metric-list"><div><span>Plan Name</span>${escapeHtml(item.user_plan_name)}</div><div><span>Expected Return</span>${item.expected_return}%</div><div><span>Risk Level</span>${escapeHtml(item.risk)}</div><div><span>Liquidity</span>${escapeHtml(item.liquidity)}</div><div><span>Suggested Horizon</span>${escapeHtml(item.horizon)}-term</div><div><span>Monthly Contribution</span>${item.allows_monthly ? "Yes" : "No"}</div></div>
+    $("#recommendations").innerHTML = `<article class="recommendation-card"><header><strong>${escapeHtml(item.bank_name)}</strong><span class="badge good">Score ${item.score}/8</span></header>
+      <div class="metric-list"><div><span>Plan Name</span>${escapeHtml(item.user_plan_name)}</div><div><span>Expected Return</span>${item.expected_return}%</div><div><span>Risk Level</span>${escapeHtml(item.risk)}</div><div><span>Liquidity</span>${escapeHtml(item.liquidity)}</div><div><span>Suggested Horizon</span>${escapeHtml(item.horizon)}-term</div><div><span>Monthly Contribution</span>${item.allows_monthly ? "Yes" : "No"}</div><div><span>Estimated Total Value</span>${money(item.estimated_total_value)}</div><div><span>Estimated Profit</span>${money(item.estimated_profit)}</div></div>
       <p class="muted">${escapeHtml(item.bank_contact)}<br>${escapeHtml(item.bank_details || "")}</p><div class="actions"><button class="primary" id="save-rec">Save Plan</button><a class="secondary button-link" href="${escapeHtml(item.bank_website || "#")}" target="_blank" rel="noreferrer">Bank Website</a></div></article>`;
     $("#save-rec").addEventListener("click", async () => {
       await api("plans", { method: "POST", body: { bank_id: item.bank_id, user_plan_name: input.plan_name, investment_amount: input.investment_amount, monthly_contribution: Boolean(input.monthly_contribution), monthly_amount: input.monthly_amount || 0, investment_goal: input.investment_goal, risk: item.risk, liquidity: item.liquidity, horizon: item.horizon, expected_return: item.expected_return, score: item.score } });
@@ -146,7 +159,7 @@ function plans() {
 }
 
 function planTable(editable) {
-  return `<div class="table-wrap"><div class="table-tools"><input data-search-table placeholder="Search plan, bank, or risk"></div><table><thead><tr><th>Plan Name</th><th>Amount</th><th>Risk</th><th>Horizon</th><th>Liquidity</th><th>Monthly</th><th>Bank</th><th>Actions</th></tr></thead><tbody>${userState.plans.map((plan) => `<tr><td>${escapeHtml(plan.user_plan_name)}</td><td>${money(plan.investment_amount)}</td><td>${escapeHtml(plan.risk)}</td><td>${escapeHtml(plan.horizon)}-term</td><td>${escapeHtml(plan.liquidity)}</td><td>${Number(plan.monthly_contribution) ? `Yes (${money(plan.monthly_amount)})` : "No"}</td><td>${escapeHtml(plan.bank_name || "N/A")}<br><span class="muted">${escapeHtml(plan.bank_contact || "")}</span></td><td class="actions"><button class="secondary" data-view-plan="${plan.id}">View</button>${editable ? `<button class="secondary" data-edit-plan="${plan.id}">Edit</button><button class="danger" data-delete-plan="${plan.id}">Delete</button>` : ""}</td></tr>`).join("") || `<tr><td colspan="8">No plans saved yet.</td></tr>`}</tbody></table></div>`;
+  return `<div class="table-wrap"><div class="table-tools"><input data-search-table placeholder="Search plan, bank, or risk"></div><table><thead><tr><th>Plan Name</th><th>Amount</th><th>Projected Total</th><th>Risk</th><th>Horizon</th><th>Liquidity</th><th>Monthly</th><th>Bank</th><th>Actions</th></tr></thead><tbody>${userState.plans.map((plan) => `<tr><td>${escapeHtml(plan.user_plan_name)}</td><td>${money(plan.investment_amount)}</td><td>${money(projectedTotalValue(plan))}</td><td>${escapeHtml(plan.risk)}</td><td>${escapeHtml(plan.horizon)}-term</td><td>${escapeHtml(plan.liquidity)}</td><td>${Number(plan.monthly_contribution) ? `Yes (${money(plan.monthly_amount)})` : "No"}</td><td>${escapeHtml(plan.bank_name || "N/A")}<br><span class="muted">${escapeHtml(plan.bank_contact || "")}</span></td><td class="actions"><button class="secondary" data-view-plan="${plan.id}">View</button>${editable ? `<button class="secondary" data-edit-plan="${plan.id}">Edit</button><button class="danger" data-delete-plan="${plan.id}">Delete</button>` : ""}</td></tr>`).join("") || `<tr><td colspan="9">No plans saved yet.</td></tr>`}</tbody></table></div>`;
 }
 
 function wirePlans() {
@@ -154,7 +167,7 @@ function wirePlans() {
   if (search) search.addEventListener("input", () => document.querySelectorAll("tbody tr").forEach((row) => row.classList.toggle("hidden", !row.textContent.toLowerCase().includes(search.value.toLowerCase()))));
   document.querySelectorAll("[data-view-plan]").forEach((btn) => btn.addEventListener("click", () => {
     const plan = userState.plans.find((item) => Number(item.id) === Number(btn.dataset.viewPlan));
-    alert(`${plan.user_plan_name}\nBank: ${plan.bank_name}\nContact: ${plan.bank_contact}\nWebsite: ${plan.bank_website || ""}\nDetails: ${plan.bank_details || ""}`);
+    alert(`${plan.user_plan_name}\nBank: ${plan.bank_name}\nProjected total: ${money(projectedTotalValue(plan))}\nContact: ${plan.bank_contact}\nWebsite: ${plan.bank_website || ""}\nDetails: ${plan.bank_details || ""}`);
   }));
   document.querySelectorAll("[data-delete-plan]").forEach((btn) => btn.addEventListener("click", async () => {
     if (!confirm("Delete this plan?")) return;
@@ -178,8 +191,9 @@ function wirePlans() {
 
 function report() {
   const finance = userState.finance || {};
+  const projectedPortfolioValue = userState.plans.reduce((sum, plan) => sum + projectedTotalValue(plan), 0);
   $("#content").innerHTML = `<div class="section-head"><div></div><button class="primary" id="print-report">Print Report</button></div>
-    ${cards([{ label: "User", value: `${escapeHtml(userState.user.full_name)} ${escapeHtml(userState.user.surname)}` }, { label: "Net Salary", value: money(finance.net_salary) }, { label: "Savings", value: money(finance.current_savings) }, { label: "Plans", value: userState.plans.length }])}
+    ${cards([{ label: "User", value: `${escapeHtml(userState.user.full_name)} ${escapeHtml(userState.user.surname)}` }, { label: "Net Salary", value: money(finance.net_salary) }, { label: "Savings", value: money(finance.current_savings) }, { label: "Projected Total", value: money(projectedPortfolioValue) }])}
     <div class="grid-2"><section class="panel"><h2>Risk Summary</h2><div class="chart-box"><canvas id="risk-chart"></canvas></div></section><section class="panel"><h2>Financial Overview</h2><p>Gross salary: ${money(finance.gross_salary)}</p><p>Deductions: ${money(finance.deductions)}</p><p>Expenses: ${money(finance.monthly_expenses)}</p></section></div>
     <section class="panel" style="margin-top:18px"><h2>Recommended Investment Plans and Banks</h2>${planTable(false)}</section>`;
   const totals = userState.plans.reduce((acc, plan) => ({ ...acc, [plan.risk]: (acc[plan.risk] || 0) + 1 }), {});
