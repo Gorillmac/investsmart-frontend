@@ -1,4 +1,4 @@
-const apiBase = localStorage.getItem("investsmart_api_base") || window.INVESTSMART_API_BASE || "../backend/api/index.php";
+const apiBase = window.INVESTSMART_API_BASE || "../backend/api/index.php";
 const authTokenKey = "investsmart_auth_token";
 
 const $ = (selector) => document.querySelector(selector);
@@ -18,7 +18,13 @@ async function api(action, options = {}) {
     credentials: "include",
     body: options.body ? JSON.stringify(options.body) : undefined,
   });
-  const payload = await response.json();
+  const raw = await response.text();
+  let payload;
+  try {
+    payload = raw ? JSON.parse(raw) : {};
+  } catch (error) {
+    throw new Error("Backend did not return valid JSON. Check that ngrok is running and env.js points to the current backend URL.");
+  }
   if (response.status === 401 && !["login", "register", "me"].includes(action)) {
     localStorage.removeItem(authTokenKey);
     window.location.href = "index.html";
