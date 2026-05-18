@@ -585,9 +585,13 @@ textarea {
   min-height: 44px;
   color: #dbe4ef;
   background: transparent;
+  border: 0;
   border-radius: 8px;
   padding: 0 12px;
   text-align: left;
+  text-decoration: none;
+  font: inherit;
+  cursor: pointer;
 }
 
 .nav-item.active,

@@ -33,6 +33,7 @@ function expectedMonthlyGrowth(plan) {
 }
 
 async function userBoot() {
+  renderUserShell();
   const me = await api("me");
   if (!me.user) return window.location.href = "index.html";
   if (me.user.role === "admin") return window.location.href = "unauthorized.html";
@@ -48,6 +49,20 @@ async function userBoot() {
   renderUser();
 }
 
+function renderUserShell() {
+  userState.active = document.body.dataset.page || "dashboard";
+  const selected = userNav.find(([id]) => id === userState.active) || userNav[0];
+  const navList = $("#nav-list");
+  if (navList) {
+    navList.innerHTML = userNav.map(([id, label, icon, description, href]) => `<a class="nav-item ${id === userState.active ? "active" : ""}" href="${href}" data-nav="${id}"><span class="nav-icon">${icon}</span><span>${label}</span></a>`).join("");
+  }
+  if ($("#page-title")) $("#page-title").textContent = selected[1];
+  if ($("#page-description")) $("#page-description").textContent = selected[3];
+  if ($("#menu-toggle") && $("#sidebar")) {
+    $("#menu-toggle").addEventListener("click", () => $("#sidebar").classList.toggle("open"));
+  }
+}
+
 async function loadPlans() {
   const payload = await api("plans");
   userState.plans = payload.plans || [];
@@ -56,7 +71,6 @@ async function loadPlans() {
 function bindLayout() {
   $("#sidebar-user").textContent = `${userState.user.full_name} ${userState.user.surname}`;
   $("#top-user").textContent = initials(userState.user);
-  $("#menu-toggle").addEventListener("click", () => $("#sidebar").classList.toggle("open"));
   $("#logout-side").addEventListener("click", logout);
   $("#logout-top").addEventListener("click", logout);
   if (!document.body.dataset.routingBound) {
@@ -80,10 +94,11 @@ function navigateUser(id) {
 }
 
 function renderUser() {
+  renderUserShell();
   const selected = userNav.find(([id]) => id === userState.active) || userNav[0];
   $("#page-title").textContent = selected[1];
   $("#page-description").textContent = selected[3];
-  $("#nav-list").innerHTML = userNav.map(([id, label, icon]) => `<button class="nav-item ${id === userState.active ? "active" : ""}" data-nav="${id}"><span class="nav-icon">${icon}</span><span>${label}</span></button>`).join("");
+  $("#nav-list").innerHTML = userNav.map(([id, label, icon, description, href]) => `<a class="nav-item ${id === userState.active ? "active" : ""}" href="${href}" data-nav="${id}"><span class="nav-icon">${icon}</span><span>${label}</span></a>`).join("");
   ({ dashboard, profile, finances, calculator, plans, report })[userState.active]();
 }
 
@@ -100,7 +115,7 @@ function dashboard() {
       <section class="panel"><h2>Financial Analytics</h2><div class="chart-box"><canvas id="finance-chart"></canvas></div></section>
       <section class="panel"><h2>Investment Distribution</h2><div class="chart-box"><canvas id="plans-bar-chart"></canvas></div></section>
     </div>
-    <section class="panel" style="margin-top:18px"><h2>Quick Actions</h2><div class="quick-actions"><button class="secondary" data-jump="profile">Profile</button><button class="secondary" data-jump="calculator">Calculator</button><button class="secondary" data-jump="plans">My Plans</button></div></section>`;
+    <section class="panel" style="margin-top:18px"><h2>Quick Actions</h2><div class="quick-actions"><a class="secondary button-link" href="profile.html" data-jump="profile">Profile</a><a class="secondary button-link" href="investment-calculator.html" data-jump="calculator">Calculator</a><a class="secondary button-link" href="my-plans.html" data-jump="plans">My Plans</a></div></section>`;
   drawPie("finance-chart", [["Expenses", finance.monthly_expenses || 0, "#bf3b3b"], ["Savings", finance.current_savings || 0, "#0f8b8d"], ["Net Salary", finance.net_salary || 0, "#f2a541"]]);
   drawBar("plans-bar-chart", userState.plans.map((plan) => plan.user_plan_name), userState.plans.map((plan) => plan.investment_amount), "#f2a541");
 }
@@ -171,7 +186,7 @@ function calculator() {
 }
 
 function plans() {
-  $("#content").innerHTML = `<div class="section-head"><div></div><button class="primary" data-jump="calculator">Add Plan</button></div>${planTable(true)}`;
+  $("#content").innerHTML = `<div class="section-head"><div></div><a class="primary button-link" href="investment-calculator.html" data-jump="calculator">Add Plan</a></div>${planTable(true)}`;
   wirePlans();
 }
 

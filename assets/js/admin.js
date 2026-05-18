@@ -7,6 +7,7 @@ const adminNav = [
 ];
 
 async function adminBoot() {
+  renderAdminShell();
   const me = await api("me");
   if (!me.user) return window.location.href = "index.html";
   if (me.user.role !== "admin") return window.location.href = "unauthorized.html";
@@ -14,7 +15,6 @@ async function adminBoot() {
   adminState.active = document.body.dataset.page || "admin-dashboard";
   $("#sidebar-user").textContent = `${me.user.full_name} ${me.user.surname}`;
   $("#top-user").textContent = initials(me.user);
-  $("#menu-toggle").addEventListener("click", () => $("#sidebar").classList.toggle("open"));
   $("#logout-side").addEventListener("click", logout);
   $("#logout-top").addEventListener("click", logout);
   if (!document.body.dataset.routingBound) {
@@ -29,16 +29,31 @@ async function adminBoot() {
   renderAdmin();
 }
 
+function renderAdminShell() {
+  adminState.active = document.body.dataset.page || "admin-dashboard";
+  const selected = adminNav.find(([id]) => id === adminState.active) || adminNav[0];
+  const navList = $("#nav-list");
+  if (navList) {
+    navList.innerHTML = adminNav.map(([id, label, icon, description, href]) => `<a class="nav-item ${id === adminState.active ? "active" : ""}" href="${href}" data-nav="${id}"><span class="nav-icon">${icon}</span><span>${label}</span></a>`).join("");
+  }
+  if ($("#page-title")) $("#page-title").textContent = selected[1];
+  if ($("#page-description")) $("#page-description").textContent = selected[3];
+  if ($("#menu-toggle") && $("#sidebar")) {
+    $("#menu-toggle").addEventListener("click", () => $("#sidebar").classList.toggle("open"));
+  }
+}
+
 function navigateAdmin(id) {
   const target = adminNav.find(([navId]) => navId === id);
   window.location.href = target ? target[4] : "admin-dashboard.html";
 }
 
 function renderAdmin() {
+  renderAdminShell();
   const selected = adminNav.find(([id]) => id === adminState.active) || adminNav[0];
   $("#page-title").textContent = selected[1];
   $("#page-description").textContent = selected[3];
-  $("#nav-list").innerHTML = adminNav.map(([id, label, icon]) => `<button class="nav-item ${id === adminState.active ? "active" : ""}" data-nav="${id}"><span class="nav-icon">${icon}</span><span>${label}</span></button>`).join("");
+  $("#nav-list").innerHTML = adminNav.map(([id, label, icon, description, href]) => `<a class="nav-item ${id === adminState.active ? "active" : ""}" href="${href}" data-nav="${id}"><span class="nav-icon">${icon}</span><span>${label}</span></a>`).join("");
   ({ "admin-dashboard": adminDashboard, "admin-users": adminUsers, "admin-banks": adminBanks, "admin-reports": adminReports })[adminState.active]();
 }
 
@@ -52,10 +67,10 @@ async function adminDashboard() {
   const activities = activity.activities || activity.activity || [];
   $("#content").innerHTML = `${cards([{ label: "Total Users", value: metrics.total_users }, { label: "Total Savings", value: money(metrics.total_savings) }, { label: "Total Plans", value: metrics.total_plans }, { label: "Average Plan", value: money(metrics.average_plan_amount) }, { label: "Average Age", value: metrics.average_user_age || "N/A" }, { label: "Projected Portfolio", value: money(metrics.projected_portfolio_total) }, { label: "Top Bank", value: metrics.top_bank }, { label: "Most Common Risk", value: metrics.dominant_risk }])}
     <div class="grid-2"><section class="panel"><h2>Risk Distribution</h2><div class="chart-box"><canvas id="admin-risk-chart"></canvas></div></section><section class="panel"><h2>Popular Banks</h2><div class="chart-box"><canvas id="admin-bank-chart"></canvas></div></section></div>
-    <section class="panel" style="margin-top:18px"><h2>Quick Links</h2><div class="quick-actions"><button class="secondary" data-jump="admin-users">Users</button><button class="secondary" data-jump="admin-banks">Banks</button><button class="secondary" data-jump="admin-reports">Reports</button></div></section>
+    <section class="panel" style="margin-top:18px"><h2>Quick Links</h2><div class="quick-actions"><a class="secondary button-link" href="admin-users.html" data-jump="admin-users">Users</a><a class="secondary button-link" href="admin-providers.html" data-jump="admin-banks">Banks</a><a class="secondary button-link" href="admin-reports.html" data-jump="admin-reports">Reports</a></div></section>
     <section class="panel" style="margin-top:18px"><h2>Recent Activity</h2>${activityPanel(activities)}</section>`;
   drawPie("admin-risk-chart", report.risk.map((row) => [row.risk, row.total, colorForRisk(row.risk)]));
-  drawBar("admin-bank-chart", report.banks.map((row) => row.label || "Unknown"), report.banks.map((row) => row.total), "#0f8b8d");
+  drawBar("admin-bank-chart", report.banks.map((row) => row.label || row.name || "Unknown"), report.banks.map((row) => row.total), "#0f8b8d");
 }
 
 async function adminUsers() {
@@ -140,8 +155,8 @@ async function adminReports() {
   <section class="panel" style="margin-top:18px"><h2>Recent Activity</h2>${activityPanel(activities)}</section>`;
   drawPie("system-risk-chart", report.risk.map((row) => [row.risk, row.total, colorForRisk(row.risk)]));
   drawBar("age-group-chart", report.age_groups.map((row) => row.label), report.age_groups.map((row) => row.total), "#f2a541");
-  drawBar("plan-type-chart", report.plan_types.map((row) => row.label || "Unknown"), report.plan_types.map((row) => row.total), "#0f8b8d");
-  drawBar("bank-analytics-chart", report.banks.map((row) => row.label || "Unknown"), report.banks.map((row) => row.total), "#18212f");
+  drawBar("plan-type-chart", report.plan_types.map((row) => row.label || row.plan_type || "Unknown"), report.plan_types.map((row) => row.total), "#0f8b8d");
+  drawBar("bank-analytics-chart", report.banks.map((row) => row.label || row.name || "Unknown"), report.banks.map((row) => row.total), "#18212f");
   $("#print-admin-report").addEventListener("click", () => window.print());
   $("#download-admin-pdf").addEventListener("click", () => downloadAdminPdf(report));
   $("#export-report-users").addEventListener("click", () => exportCsv("users"));
@@ -226,7 +241,7 @@ function downloadAdminPdf(report) {
   doc.text(`Top bank: ${metrics.top_bank}`, 14, 72);
   doc.text(`Most common risk: ${metrics.dominant_risk}`, 14, 80);
   doc.text("Top banks:", 14, 96);
-  report.banks.slice(0, 5).forEach((row, index) => doc.text(`${row.label || "Unknown"} - ${row.total}`, 20, 104 + (index * 8)));
+  report.banks.slice(0, 5).forEach((row, index) => doc.text(`${row.label || row.name || "Unknown"} - ${row.total}`, 20, 104 + (index * 8)));
   doc.text("Risk distribution:", 110, 96);
   report.risk.forEach((row, index) => doc.text(`${row.risk} - ${row.total}`, 116, 104 + (index * 8)));
   doc.save("investsmart-admin-report.pdf");
