@@ -59,6 +59,15 @@ function bindLayout() {
   $("#menu-toggle").addEventListener("click", () => $("#sidebar").classList.toggle("open"));
   $("#logout-side").addEventListener("click", logout);
   $("#logout-top").addEventListener("click", logout);
+  if (!document.body.dataset.routingBound) {
+    document.body.dataset.routingBound = "1";
+    document.addEventListener("click", (event) => {
+      const routeButton = event.target.closest("[data-nav], [data-jump]");
+      if (!routeButton) return;
+      event.preventDefault();
+      navigateUser(routeButton.dataset.nav || routeButton.dataset.jump);
+    });
+  }
 }
 
 function navigateUser(id) {
@@ -75,7 +84,6 @@ function renderUser() {
   $("#page-title").textContent = selected[1];
   $("#page-description").textContent = selected[3];
   $("#nav-list").innerHTML = userNav.map(([id, label, icon]) => `<button class="nav-item ${id === userState.active ? "active" : ""}" data-nav="${id}"><span class="nav-icon">${icon}</span><span>${label}</span></button>`).join("");
-  document.querySelectorAll("[data-nav]").forEach((item) => item.addEventListener("click", () => navigateUser(item.dataset.nav)));
   ({ dashboard, profile, finances, calculator, plans, report })[userState.active]();
 }
 
@@ -95,7 +103,6 @@ function dashboard() {
     <section class="panel" style="margin-top:18px"><h2>Quick Actions</h2><div class="quick-actions"><button class="secondary" data-jump="profile">Profile</button><button class="secondary" data-jump="calculator">Calculator</button><button class="secondary" data-jump="plans">My Plans</button></div></section>`;
   drawPie("finance-chart", [["Expenses", finance.monthly_expenses || 0, "#bf3b3b"], ["Savings", finance.current_savings || 0, "#0f8b8d"], ["Net Salary", finance.net_salary || 0, "#f2a541"]]);
   drawBar("plans-bar-chart", userState.plans.map((plan) => plan.user_plan_name), userState.plans.map((plan) => plan.investment_amount), "#f2a541");
-  document.querySelectorAll("[data-jump]").forEach((btn) => btn.addEventListener("click", () => navigateUser(btn.dataset.jump)));
 }
 
 function profile() {
@@ -149,7 +156,7 @@ function calculator() {
     event.preventDefault();
     const input = formData(event.currentTarget);
     const payload = await api("recommend", { method: "POST", body: input });
-    userState.recommendations = payload.recommendations || [];
+    userState.recommendations = payload.recommendations || payload.results || [];
     const item = userState.recommendations[0];
     if (!item) return $("#recommendations").innerHTML = `<p class="muted">No matching bank found.</p>`;
     $("#recommendations").innerHTML = `<article class="recommendation-card"><header><strong>${escapeHtml(item.bank_name)}</strong><span class="badge good">Score ${item.score}/8</span></header>
@@ -166,7 +173,6 @@ function calculator() {
 function plans() {
   $("#content").innerHTML = `<div class="section-head"><div></div><button class="primary" data-jump="calculator">Add Plan</button></div>${planTable(true)}`;
   wirePlans();
-  $("[data-jump='calculator']").addEventListener("click", () => navigateUser("calculator"));
 }
 
 function planTable(editable) {

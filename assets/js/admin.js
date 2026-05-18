@@ -17,6 +17,15 @@ async function adminBoot() {
   $("#menu-toggle").addEventListener("click", () => $("#sidebar").classList.toggle("open"));
   $("#logout-side").addEventListener("click", logout);
   $("#logout-top").addEventListener("click", logout);
+  if (!document.body.dataset.routingBound) {
+    document.body.dataset.routingBound = "1";
+    document.addEventListener("click", (event) => {
+      const routeButton = event.target.closest("[data-nav], [data-jump]");
+      if (!routeButton) return;
+      event.preventDefault();
+      navigateAdmin(routeButton.dataset.nav || routeButton.dataset.jump);
+    });
+  }
   renderAdmin();
 }
 
@@ -30,7 +39,6 @@ function renderAdmin() {
   $("#page-title").textContent = selected[1];
   $("#page-description").textContent = selected[3];
   $("#nav-list").innerHTML = adminNav.map(([id, label, icon]) => `<button class="nav-item ${id === adminState.active ? "active" : ""}" data-nav="${id}"><span class="nav-icon">${icon}</span><span>${label}</span></button>`).join("");
-  document.querySelectorAll("[data-nav]").forEach((item) => item.addEventListener("click", () => navigateAdmin(item.dataset.nav)));
   ({ "admin-dashboard": adminDashboard, "admin-users": adminUsers, "admin-banks": adminBanks, "admin-reports": adminReports })[adminState.active]();
 }
 
@@ -40,13 +48,14 @@ function cards(items) {
 
 async function adminDashboard() {
   const [report, activity] = await Promise.all([api("admin-report"), api("admin-activity")]);
-  $("#content").innerHTML = `${cards([{ label: "Total Users", value: report.metrics.total_users }, { label: "Total Savings", value: money(report.metrics.total_savings) }, { label: "Total Plans", value: report.metrics.total_plans }, { label: "Average Plan", value: money(report.metrics.average_plan_amount) }, { label: "Average Age", value: report.metrics.average_user_age || "N/A" }, { label: "Projected Portfolio", value: money(report.metrics.projected_portfolio_total) }, { label: "Top Bank", value: report.metrics.top_bank }, { label: "Most Common Risk", value: report.metrics.dominant_risk }])}
+  const metrics = report.metrics || report.overview || {};
+  const activities = activity.activities || activity.activity || [];
+  $("#content").innerHTML = `${cards([{ label: "Total Users", value: metrics.total_users }, { label: "Total Savings", value: money(metrics.total_savings) }, { label: "Total Plans", value: metrics.total_plans }, { label: "Average Plan", value: money(metrics.average_plan_amount) }, { label: "Average Age", value: metrics.average_user_age || "N/A" }, { label: "Projected Portfolio", value: money(metrics.projected_portfolio_total) }, { label: "Top Bank", value: metrics.top_bank }, { label: "Most Common Risk", value: metrics.dominant_risk }])}
     <div class="grid-2"><section class="panel"><h2>Risk Distribution</h2><div class="chart-box"><canvas id="admin-risk-chart"></canvas></div></section><section class="panel"><h2>Popular Banks</h2><div class="chart-box"><canvas id="admin-bank-chart"></canvas></div></section></div>
     <section class="panel" style="margin-top:18px"><h2>Quick Links</h2><div class="quick-actions"><button class="secondary" data-jump="admin-users">Users</button><button class="secondary" data-jump="admin-banks">Banks</button><button class="secondary" data-jump="admin-reports">Reports</button></div></section>
-    <section class="panel" style="margin-top:18px"><h2>Recent Activity</h2>${activityPanel(activity.activities)}</section>`;
+    <section class="panel" style="margin-top:18px"><h2>Recent Activity</h2>${activityPanel(activities)}</section>`;
   drawPie("admin-risk-chart", report.risk.map((row) => [row.risk, row.total, colorForRisk(row.risk)]));
   drawBar("admin-bank-chart", report.banks.map((row) => row.label || "Unknown"), report.banks.map((row) => row.total), "#0f8b8d");
-  document.querySelectorAll("[data-jump]").forEach((btn) => btn.addEventListener("click", () => navigateAdmin(btn.dataset.jump)));
 }
 
 async function adminUsers() {
@@ -122,11 +131,13 @@ function bankForm() {
 
 async function adminReports() {
   const [report, activity] = await Promise.all([api("admin-report"), api("admin-activity")]);
-  $("#content").innerHTML = `<div class="section-head"><div></div><button class="primary" id="download-admin-pdf">Download PDF</button><button class="secondary" id="print-admin-report">Print Report</button></div>${cards([{ label: "Total Users", value: report.metrics.total_users }, { label: "Total Savings", value: money(report.metrics.total_savings) }, { label: "Total Plans", value: report.metrics.total_plans }, { label: "Average Plan", value: money(report.metrics.average_plan_amount) }, { label: "Projected Portfolio", value: money(report.metrics.projected_portfolio_total) }, { label: "Top Bank", value: report.metrics.top_bank }])}
+  const metrics = report.metrics || report.overview || {};
+  const activities = activity.activities || activity.activity || [];
+  $("#content").innerHTML = `<div class="section-head"><div></div><button class="primary" id="download-admin-pdf">Download PDF</button><button class="secondary" id="print-admin-report">Print Report</button></div>${cards([{ label: "Total Users", value: metrics.total_users }, { label: "Total Savings", value: money(metrics.total_savings) }, { label: "Total Plans", value: metrics.total_plans }, { label: "Average Plan", value: money(metrics.average_plan_amount) }, { label: "Projected Portfolio", value: money(metrics.projected_portfolio_total) }, { label: "Top Bank", value: metrics.top_bank }])}
   <section class="panel" style="margin-bottom:18px"><h2>Exports</h2><div class="inline-actions"><button class="secondary" id="export-report-users">Users CSV</button><button class="secondary" id="export-report-banks">Banks CSV</button><button class="secondary" id="export-report-plans">Plans CSV</button><button class="secondary" id="export-report-activity">Activity CSV</button></div></section>
   <div class="grid-2"><section class="panel"><h2>System Risk Distribution</h2><div class="chart-box"><canvas id="system-risk-chart"></canvas></div></section><section class="panel"><h2>Age Group Distribution</h2><div class="chart-box"><canvas id="age-group-chart"></canvas></div></section></div>
   <div class="grid-2"><section class="panel"><h2>Plan Type Analytics</h2><div class="chart-box"><canvas id="plan-type-chart"></canvas></div></section><section class="panel"><h2>Bank Analytics</h2><div class="chart-box"><canvas id="bank-analytics-chart"></canvas></div></section></div>
-  <section class="panel" style="margin-top:18px"><h2>Recent Activity</h2>${activityPanel(activity.activities)}</section>`;
+  <section class="panel" style="margin-top:18px"><h2>Recent Activity</h2>${activityPanel(activities)}</section>`;
   drawPie("system-risk-chart", report.risk.map((row) => [row.risk, row.total, colorForRisk(row.risk)]));
   drawBar("age-group-chart", report.age_groups.map((row) => row.label), report.age_groups.map((row) => row.total), "#f2a541");
   drawBar("plan-type-chart", report.plan_types.map((row) => row.label || "Unknown"), report.plan_types.map((row) => row.total), "#0f8b8d");
@@ -202,17 +213,18 @@ function downloadAdminPdf(report) {
   }
 
   const { jsPDF } = window.jspdf;
+  const metrics = report.metrics || report.overview || {};
   const doc = new jsPDF();
   doc.setFontSize(18);
   doc.text("InvestSmart Admin Report", 14, 18);
   doc.setFontSize(11);
-  doc.text(`Total users: ${report.metrics.total_users}`, 14, 32);
-  doc.text(`Total savings: ${money(report.metrics.total_savings)}`, 14, 40);
-  doc.text(`Total plans: ${report.metrics.total_plans}`, 14, 48);
-  doc.text(`Average plan amount: ${money(report.metrics.average_plan_amount)}`, 14, 56);
-  doc.text(`Projected portfolio: ${money(report.metrics.projected_portfolio_total)}`, 14, 64);
-  doc.text(`Top bank: ${report.metrics.top_bank}`, 14, 72);
-  doc.text(`Most common risk: ${report.metrics.dominant_risk}`, 14, 80);
+  doc.text(`Total users: ${metrics.total_users}`, 14, 32);
+  doc.text(`Total savings: ${money(metrics.total_savings)}`, 14, 40);
+  doc.text(`Total plans: ${metrics.total_plans}`, 14, 48);
+  doc.text(`Average plan amount: ${money(metrics.average_plan_amount)}`, 14, 56);
+  doc.text(`Projected portfolio: ${money(metrics.projected_portfolio_total)}`, 14, 64);
+  doc.text(`Top bank: ${metrics.top_bank}`, 14, 72);
+  doc.text(`Most common risk: ${metrics.dominant_risk}`, 14, 80);
   doc.text("Top banks:", 14, 96);
   report.banks.slice(0, 5).forEach((row, index) => doc.text(`${row.label || "Unknown"} - ${row.total}`, 20, 104 + (index * 8)));
   doc.text("Risk distribution:", 110, 96);
