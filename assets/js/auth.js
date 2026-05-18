@@ -161,14 +161,12 @@ function authSwitchTarget(element) {
   if (explicit) return explicit;
 
   const href = element.getAttribute("href") || "";
-  const target = element.getAttribute("data-target") || "";
-  const combined = `${href} ${target} ${element.id || ""} ${element.className || ""} ${element.textContent || ""}`.toLowerCase();
-
-  if (combined.includes("signup") || combined.includes("sign up") || combined.includes("register") || combined.includes("create account")) {
+  const normalizedHref = href.toLowerCase();
+  if (normalizedHref === "#signup" || normalizedHref === "#register") {
     return "signup";
   }
 
-  if (combined.includes("signin") || combined.includes("sign in") || combined.includes("login") || combined.includes("log in")) {
+  if (normalizedHref === "#signin" || normalizedHref === "#login") {
     return "signin";
   }
 
@@ -176,7 +174,7 @@ function authSwitchTarget(element) {
 }
 
 document.addEventListener("click", (event) => {
-  const button = event.target.closest("[data-open-auth], [data-auth-switch], [data-auth-tab], a, button");
+  const button = event.target.closest("[data-open-auth], [data-auth-switch], [data-auth-tab], a[href='#signin'], a[href='#login'], a[href='#signup'], a[href='#register']");
   if (!button) return;
 
   const target = authSwitchTarget(button);
