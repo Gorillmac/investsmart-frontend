@@ -8,15 +8,22 @@ const signUpForm =
   document.querySelector("#sign-up-form") ||
   document.querySelector("[data-auth-form='signup']");
 
-const signInPanel =
+let signInPanel =
   document.querySelector("[data-auth-panel='signin']") ||
-  signInForm?.closest("[data-auth-panel], .auth-panel, .auth-card, .auth-form-wrap") ||
+  signInForm?.closest("[data-auth-panel='signin'], .signin-panel, .login-panel") ||
+  signInForm ||
   null;
 
-const signUpPanel =
+let signUpPanel =
   document.querySelector("[data-auth-panel='signup']") ||
-  signUpForm?.closest("[data-auth-panel], .auth-panel, .auth-card, .auth-form-wrap") ||
+  signUpForm?.closest("[data-auth-panel='signup'], .signup-panel, .register-panel") ||
+  signUpForm ||
   null;
+
+if (signInPanel && signUpPanel && signInPanel === signUpPanel) {
+  signInPanel = signInForm;
+  signUpPanel = signUpForm;
+}
 
 const messageHost =
   document.querySelector("#auth-message") ||
@@ -95,11 +102,35 @@ function redirectForRole(user) {
   window.location.href = "dashboard.html";
 }
 
-document.querySelectorAll("[data-auth-switch]").forEach((button) => {
-  button.addEventListener("click", () => {
-    toggleAuth(button.getAttribute("data-auth-switch") || "signin");
-    authMessage("");
-  });
+function authSwitchTarget(element) {
+  const explicit = element.getAttribute("data-auth-switch");
+  if (explicit) return explicit;
+
+  const href = element.getAttribute("href") || "";
+  const target = element.getAttribute("data-target") || "";
+  const combined = `${href} ${target} ${element.id || ""} ${element.className || ""} ${element.textContent || ""}`.toLowerCase();
+
+  if (combined.includes("signup") || combined.includes("sign up") || combined.includes("register") || combined.includes("create account")) {
+    return "signup";
+  }
+
+  if (combined.includes("signin") || combined.includes("sign in") || combined.includes("login") || combined.includes("log in")) {
+    return "signin";
+  }
+
+  return null;
+}
+
+document.addEventListener("click", (event) => {
+  const button = event.target.closest("[data-auth-switch], a, button");
+  if (!button) return;
+
+  const target = authSwitchTarget(button);
+  if (!target) return;
+
+  event.preventDefault();
+  toggleAuth(target);
+  authMessage("");
 });
 
 if (signInForm) {
