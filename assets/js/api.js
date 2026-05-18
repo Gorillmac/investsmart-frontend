@@ -58,8 +58,12 @@ function initials(user) {
 }
 
 async function logout() {
+  try {
+    await api("logout", { method: "POST" });
+  } catch (error) {
+    console.warn("Logout request failed; clearing local session anyway.", error);
+  }
   localStorage.removeItem(authTokenKey);
-  await api("logout");
   window.location.href = "index.html";
 }
 
