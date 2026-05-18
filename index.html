@@ -91,7 +91,20 @@
         <label>Email <input name="email" type="email" required autocomplete="email"></label>
         <label>Password <input name="password" type="password" required autocomplete="current-password"></label>
         <button class="primary" type="submit">Sign in</button>
+        <button class="link-button" type="button" data-auth-switch="forgot">Forgot password?</button>
         <p class="hint">All users sign in here. Admin demo: admin@investsmart.local / password</p>
+      </form>
+
+      <form id="login-otp-form" class="form-grid auth-form hidden">
+        <div class="otp-card">
+          <span>Demo login OTP</span>
+          <strong id="login-otp-code">000000</strong>
+          <small>Enter this code to complete sign in.</small>
+        </div>
+        <input name="email" type="hidden">
+        <label>OTP Code <input name="otp" inputmode="numeric" maxlength="6" required></label>
+        <button class="primary" type="submit">Verify OTP</button>
+        <button class="secondary" type="button" data-auth-switch="login">Back to sign in</button>
       </form>
 
       <form id="register-form" class="form-grid auth-form hidden">
@@ -103,12 +116,33 @@
         <label>Confirm password <input name="confirm_password" type="password" required minlength="6"></label>
         <button class="primary" type="submit">Create account</button>
       </form>
+
+      <form id="forgot-password-form" class="form-grid auth-form hidden">
+        <p class="hint">Enter your account email. For this school demo, the reset OTP will be shown on screen.</p>
+        <label>Email <input name="email" type="email" required autocomplete="email"></label>
+        <button class="primary" type="submit">Get Reset OTP</button>
+        <button class="secondary" type="button" data-auth-switch="login">Back to sign in</button>
+      </form>
+
+      <form id="reset-password-form" class="form-grid auth-form hidden">
+        <div class="otp-card">
+          <span>Demo reset OTP</span>
+          <strong id="reset-otp-code">000000</strong>
+          <small>Use this code to set a new password.</small>
+        </div>
+        <input name="email" type="hidden">
+        <label>OTP Code <input name="otp" inputmode="numeric" maxlength="6" required></label>
+        <label>New Password <input name="password" type="password" required minlength="6" autocomplete="new-password"></label>
+        <label>Confirm New Password <input name="confirm_password" type="password" required minlength="6" autocomplete="new-password"></label>
+        <button class="primary" type="submit">Reset Password</button>
+        <button class="secondary" type="button" data-auth-switch="forgot">Request new OTP</button>
+      </form>
       <button id="back-home" class="ghost dark-ghost" type="button">Back to home</button>
     </section>
   </main>
 
   <script src="assets/js/env.js"></script>
-  <script src="assets/js/api.js?v=20260518"></script>
-  <script src="assets/js/auth.js"></script>
+  <script src="assets/js/api.js?v=20260518otp"></script>
+  <script src="assets/js/auth.js?v=20260518otp"></script>
 </body>
 </html>

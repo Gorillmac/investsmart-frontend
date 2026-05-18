@@ -10,26 +10,22 @@ const signUpForm =
   document.querySelector("#register-form") ||
   document.querySelector("[data-auth-form='signup']");
 
+const loginOtpForm = document.querySelector("#login-otp-form");
+const forgotPasswordForm = document.querySelector("#forgot-password-form");
+const resetPasswordForm = document.querySelector("#reset-password-form");
 const homePanel = document.querySelector("#home-panel");
 const authPanel = document.querySelector("#auth-panel");
 const backHomeButton = document.querySelector("#back-home");
+const loginOtpCode = document.querySelector("#login-otp-code");
+const resetOtpCode = document.querySelector("#reset-otp-code");
 
-let signInPanel =
-  document.querySelector("[data-auth-panel='signin']") ||
-  signInForm?.closest("[data-auth-panel='signin'], .signin-panel, .login-panel") ||
-  signInForm ||
-  null;
-
-let signUpPanel =
-  document.querySelector("[data-auth-panel='signup']") ||
-  signUpForm?.closest("[data-auth-panel='signup'], .signup-panel, .register-panel") ||
-  signUpForm ||
-  null;
-
-if (signInPanel && signUpPanel && signInPanel === signUpPanel) {
-  signInPanel = signInForm;
-  signUpPanel = signUpForm;
-}
+const authForms = {
+  signin: signInForm,
+  signup: signUpForm,
+  "login-otp": loginOtpForm,
+  forgot: forgotPasswordForm,
+  reset: resetPasswordForm,
+};
 
 const messageHost =
   document.querySelector("#auth-message") ||
@@ -43,6 +39,14 @@ function normalizeAuthMode(mode) {
 
   if (mode === "register" || mode === "signup" || mode === "sign-up") {
     return "signup";
+  }
+
+  if (mode === "otp" || mode === "loginotp" || mode === "login-otp") {
+    return "login-otp";
+  }
+
+  if (mode === "forgot-password") {
+    return "forgot";
   }
 
   return mode || "signin";
@@ -63,19 +67,14 @@ function authMessage(text, type = "info") {
 
 function toggleAuth(mode) {
   mode = normalizeAuthMode(mode);
-  const signinActive = mode === "signin";
 
-  if (signInPanel) {
-    signInPanel.hidden = !signinActive;
-    signInPanel.classList.toggle("hidden", !signinActive);
-    signInPanel.classList.toggle("active", signinActive);
-  }
-
-  if (signUpPanel) {
-    signUpPanel.hidden = signinActive;
-    signUpPanel.classList.toggle("hidden", signinActive);
-    signUpPanel.classList.toggle("active", !signinActive);
-  }
+  Object.entries(authForms).forEach(([formMode, form]) => {
+    if (!form) return;
+    const active = formMode === mode;
+    form.hidden = !active;
+    form.classList.toggle("hidden", !active);
+    form.classList.toggle("active", active);
+  });
 
   document.querySelectorAll("[data-auth-switch], [data-auth-tab]").forEach((button) => {
     const target = normalizeAuthMode(button.getAttribute("data-auth-switch") || button.getAttribute("data-auth-tab"));
@@ -170,11 +169,28 @@ function authSwitchTarget(element) {
     return "signin";
   }
 
+  if (normalizedHref === "#forgot" || normalizedHref === "#forgot-password") {
+    return "forgot";
+  }
+
   return null;
 }
 
+function setFormEmail(form, email) {
+  const input = form?.querySelector('input[name="email"]');
+  if (input) {
+    input.value = email || "";
+  }
+}
+
+function setDemoOtp(host, otp) {
+  if (host) {
+    host.textContent = otp || "000000";
+  }
+}
+
 document.addEventListener("click", (event) => {
-  const button = event.target.closest("[data-open-auth], [data-auth-switch], [data-auth-tab], a[href='#signin'], a[href='#login'], a[href='#signup'], a[href='#register']");
+  const button = event.target.closest("[data-open-auth], [data-auth-switch], [data-auth-tab], a[href='#signin'], a[href='#login'], a[href='#signup'], a[href='#register'], a[href='#forgot'], a[href='#forgot-password']");
   if (!button) return;
 
   const target = authSwitchTarget(button);
@@ -199,6 +215,18 @@ if (signInForm) {
 
     try {
       const response = await api("login", { method: "POST", body: payload });
+      if (response.otp_required) {
+        setFormEmail(loginOtpForm, response.email || payload.email);
+        setDemoOtp(loginOtpCode, response.otp);
+        const otpInput = loginOtpForm?.querySelector('input[name="otp"]');
+        if (otpInput) {
+          otpInput.value = "";
+        }
+        toggleAuth("login-otp");
+        authMessage(`${response.message} It expires in ${response.expires_in_minutes || 10} minutes.`, "success");
+        return;
+      }
+
       if (response.token) {
         setAuthToken(response.token);
       }
@@ -206,6 +234,27 @@ if (signInForm) {
       redirectForRole(response.user || null);
     } catch (error) {
       authMessage(error.message || "Unable to sign in. Please try again.", "error");
+    }
+  });
+}
+
+if (loginOtpForm) {
+  loginOtpForm.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    authMessage("");
+
+    const payload = Object.fromEntries(new FormData(loginOtpForm).entries());
+
+    try {
+      const response = await api("verify-login-otp", { method: "POST", body: payload });
+      if (response.token) {
+        setAuthToken(response.token);
+      }
+      loginOtpForm.reset();
+      authMessage("OTP verified. Signed in successfully.", "success");
+      redirectForRole(response.user || null);
+    } catch (error) {
+      authMessage(error.message || "OTP verification failed. Please try again.", "error");
     }
   });
 }
@@ -223,10 +272,53 @@ if (signUpForm) {
       signUpForm.reset();
       setPendingEmail(response.email || payload.email || "");
       toggleAuth("signin");
-      authMessage(response.message || "Account created successfully. Please sign in.", "success");
+      authMessage(`${response.message || "Account created successfully. Please sign in."} Each login will ask for a demo OTP.`, "success");
       applyPendingEmail();
     } catch (error) {
       authMessage(error.message || "Unable to create the account right now. Please try again.", "error");
+    }
+  });
+}
+
+if (forgotPasswordForm) {
+  forgotPasswordForm.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    authMessage("");
+
+    const payload = Object.fromEntries(new FormData(forgotPasswordForm).entries());
+
+    try {
+      const response = await api("forgot-password", { method: "POST", body: payload });
+      setFormEmail(resetPasswordForm, response.email || payload.email);
+      setDemoOtp(resetOtpCode, response.otp);
+      const otpInput = resetPasswordForm?.querySelector('input[name="otp"]');
+      if (otpInput) {
+        otpInput.value = "";
+      }
+      toggleAuth("reset");
+      authMessage(`${response.message} It expires in ${response.expires_in_minutes || 10} minutes.`, "success");
+    } catch (error) {
+      authMessage(error.message || "Unable to request a reset OTP.", "error");
+    }
+  });
+}
+
+if (resetPasswordForm) {
+  resetPasswordForm.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    authMessage("");
+
+    const payload = Object.fromEntries(new FormData(resetPasswordForm).entries());
+
+    try {
+      const response = await api("reset-password", { method: "POST", body: payload });
+      resetPasswordForm.reset();
+      setPendingEmail(response.email || payload.email || "");
+      toggleAuth("signin");
+      authMessage(response.message || "Password updated successfully. Please sign in.", "success");
+      applyPendingEmail();
+    } catch (error) {
+      authMessage(error.message || "Unable to reset the password.", "error");
     }
   });
 }
