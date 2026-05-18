@@ -1,12 +1,18 @@
 const signInForm =
   document.querySelector("#signin-form") ||
   document.querySelector("#sign-in-form") ||
+  document.querySelector("#login-form") ||
   document.querySelector("[data-auth-form='signin']");
 
 const signUpForm =
   document.querySelector("#signup-form") ||
   document.querySelector("#sign-up-form") ||
+  document.querySelector("#register-form") ||
   document.querySelector("[data-auth-form='signup']");
+
+const homePanel = document.querySelector("#home-panel");
+const authPanel = document.querySelector("#auth-panel");
+const backHomeButton = document.querySelector("#back-home");
 
 let signInPanel =
   document.querySelector("[data-auth-panel='signin']") ||
@@ -30,6 +36,18 @@ const messageHost =
   document.querySelector(".auth-message") ||
   document.querySelector("[data-auth-message]");
 
+function normalizeAuthMode(mode) {
+  if (mode === "login" || mode === "signin" || mode === "sign-in") {
+    return "signin";
+  }
+
+  if (mode === "register" || mode === "signup" || mode === "sign-up") {
+    return "signup";
+  }
+
+  return mode || "signin";
+}
+
 function authMessage(text, type = "info") {
   if (!messageHost) {
     if (text) {
@@ -44,22 +62,55 @@ function authMessage(text, type = "info") {
 }
 
 function toggleAuth(mode) {
+  mode = normalizeAuthMode(mode);
   const signinActive = mode === "signin";
 
   if (signInPanel) {
     signInPanel.hidden = !signinActive;
+    signInPanel.classList.toggle("hidden", !signinActive);
     signInPanel.classList.toggle("active", signinActive);
   }
 
   if (signUpPanel) {
     signUpPanel.hidden = signinActive;
+    signUpPanel.classList.toggle("hidden", signinActive);
     signUpPanel.classList.toggle("active", !signinActive);
   }
 
-  document.querySelectorAll("[data-auth-switch]").forEach((button) => {
-    const target = button.getAttribute("data-auth-switch");
+  document.querySelectorAll("[data-auth-switch], [data-auth-tab]").forEach((button) => {
+    const target = normalizeAuthMode(button.getAttribute("data-auth-switch") || button.getAttribute("data-auth-tab"));
     button.classList.toggle("active", target === mode);
   });
+}
+
+function openAuth(mode = "signin") {
+  if (homePanel) {
+    homePanel.hidden = true;
+    homePanel.classList.add("hidden");
+  }
+
+  if (authPanel) {
+    authPanel.hidden = false;
+    authPanel.classList.remove("hidden");
+    authPanel.classList.add("active");
+  }
+
+  toggleAuth(mode);
+}
+
+function closeAuth() {
+  if (authPanel) {
+    authPanel.hidden = true;
+    authPanel.classList.add("hidden");
+    authPanel.classList.remove("active");
+  }
+
+  if (homePanel) {
+    homePanel.hidden = false;
+    homePanel.classList.remove("hidden");
+  }
+
+  authMessage("");
 }
 
 function setPendingEmail(email) {
@@ -103,7 +154,10 @@ function redirectForRole(user) {
 }
 
 function authSwitchTarget(element) {
-  const explicit = element.getAttribute("data-auth-switch");
+  const explicit =
+    element.getAttribute("data-auth-switch") ||
+    element.getAttribute("data-auth-tab") ||
+    element.getAttribute("data-open-auth");
   if (explicit) return explicit;
 
   const href = element.getAttribute("href") || "";
@@ -122,16 +176,20 @@ function authSwitchTarget(element) {
 }
 
 document.addEventListener("click", (event) => {
-  const button = event.target.closest("[data-auth-switch], a, button");
+  const button = event.target.closest("[data-open-auth], [data-auth-switch], [data-auth-tab], a, button");
   if (!button) return;
 
   const target = authSwitchTarget(button);
   if (!target) return;
 
   event.preventDefault();
-  toggleAuth(target);
+  openAuth(target);
   authMessage("");
 });
+
+if (backHomeButton) {
+  backHomeButton.addEventListener("click", closeAuth);
+}
 
 if (signInForm) {
   signInForm.addEventListener("submit", async (event) => {
