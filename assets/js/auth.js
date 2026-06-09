@@ -183,9 +183,23 @@ function setFormEmail(form, email) {
   }
 }
 
-function setDemoOtp(host, otp) {
-  if (host) {
-    host.textContent = otp || "000000";
+function setOtpDisplay(host, otp, delivery = "screen") {
+  if (!host) return;
+
+  const card = host.closest(".otp-card");
+  if (otp && delivery !== "email") {
+    host.textContent = otp;
+    if (card) {
+      card.hidden = false;
+      card.classList.remove("hidden");
+    }
+    return;
+  }
+
+  host.textContent = "";
+  if (card) {
+    card.hidden = true;
+    card.classList.add("hidden");
   }
 }
 
@@ -217,7 +231,7 @@ if (signInForm) {
       const response = await api("login", { method: "POST", body: payload });
       if (response.otp_required) {
         setFormEmail(loginOtpForm, response.email || payload.email);
-        setDemoOtp(loginOtpCode, response.otp);
+        setOtpDisplay(loginOtpCode, response.otp, response.otp_delivery);
         const otpInput = loginOtpForm?.querySelector('input[name="otp"]');
         if (otpInput) {
           otpInput.value = "";
@@ -272,7 +286,7 @@ if (signUpForm) {
       signUpForm.reset();
       setPendingEmail(response.email || payload.email || "");
       toggleAuth("signin");
-      authMessage(`${response.message || "Account created successfully. Please sign in."} Each login will ask for a demo OTP.`, "success");
+      authMessage(`${response.message || "Account created successfully. Please sign in."} Each login will ask for an OTP.`, "success");
       applyPendingEmail();
     } catch (error) {
       authMessage(error.message || "Unable to create the account right now. Please try again.", "error");
@@ -290,7 +304,7 @@ if (forgotPasswordForm) {
     try {
       const response = await api("forgot-password", { method: "POST", body: payload });
       setFormEmail(resetPasswordForm, response.email || payload.email);
-      setDemoOtp(resetOtpCode, response.otp);
+      setOtpDisplay(resetOtpCode, response.otp, response.otp_delivery);
       const otpInput = resetPasswordForm?.querySelector('input[name="otp"]');
       if (otpInput) {
         otpInput.value = "";

@@ -97,9 +97,9 @@
 
       <form id="login-otp-form" class="form-grid auth-form hidden">
         <div class="otp-card">
-          <span>Demo login OTP</span>
+          <span>Login OTP</span>
           <strong id="login-otp-code">000000</strong>
-          <small>Enter this code to complete sign in.</small>
+          <small>Demo mode only. In email mode, check your inbox.</small>
         </div>
         <input name="email" type="hidden">
         <label>OTP Code <input name="otp" inputmode="numeric" maxlength="6" required></label>
@@ -118,7 +118,7 @@
       </form>
 
       <form id="forgot-password-form" class="form-grid auth-form hidden">
-        <p class="hint">Enter your account email. For this school demo, the reset OTP will be shown on screen.</p>
+        <p class="hint">Enter your account email. The reset OTP will be emailed when mail mode is enabled.</p>
         <label>Email <input name="email" type="email" required autocomplete="email"></label>
         <button class="primary" type="submit">Get Reset OTP</button>
         <button class="secondary" type="button" data-auth-switch="login">Back to sign in</button>
@@ -126,9 +126,9 @@
 
       <form id="reset-password-form" class="form-grid auth-form hidden">
         <div class="otp-card">
-          <span>Demo reset OTP</span>
+          <span>Reset OTP</span>
           <strong id="reset-otp-code">000000</strong>
-          <small>Use this code to set a new password.</small>
+          <small>Demo mode only. In email mode, check your inbox.</small>
         </div>
         <input name="email" type="hidden">
         <label>OTP Code <input name="otp" inputmode="numeric" maxlength="6" required></label>
@@ -144,5 +144,6 @@
   <script src="assets/js/env.js"></script>
   <script src="assets/js/api.js?v=20260518otp"></script>
   <script src="assets/js/auth.js?v=20260518otp"></script>
+  <script src="assets/js/otp-fallback.js?v=20260519"></script>
 </body>
 </html>
