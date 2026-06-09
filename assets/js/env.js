@@ -4,4 +4,4 @@ const isLocalInvestSmart =
 
 window.INVESTSMART_API_BASE = isLocalInvestSmart
   ? "../backend/api/index.php"
-  : "https://chase-frying-applicant.ngrok-free.dev/investsmart/backend/api/index.php";
+  : "https://crewless-founder-defy.ngrok-free.dev/investsmart/backend/api/index.php";
