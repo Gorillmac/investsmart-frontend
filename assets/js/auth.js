@@ -183,19 +183,10 @@ function setFormEmail(form, email) {
   }
 }
 
-function setOtpDisplay(host, otp, delivery = "screen") {
+function setOtpDisplay(host) {
   if (!host) return;
 
   const card = host.closest(".otp-card");
-  if (otp && delivery !== "email") {
-    host.textContent = otp;
-    if (card) {
-      card.hidden = false;
-      card.classList.remove("hidden");
-    }
-    return;
-  }
-
   host.textContent = "";
   if (card) {
     card.hidden = true;
@@ -231,7 +222,7 @@ if (signInForm) {
       const response = await api("login", { method: "POST", body: payload });
       if (response.otp_required) {
         setFormEmail(loginOtpForm, response.email || payload.email);
-        setOtpDisplay(loginOtpCode, response.otp, response.otp_delivery);
+        setOtpDisplay(loginOtpCode);
         const otpInput = loginOtpForm?.querySelector('input[name="otp"]');
         if (otpInput) {
           otpInput.value = "";
@@ -304,7 +295,7 @@ if (forgotPasswordForm) {
     try {
       const response = await api("forgot-password", { method: "POST", body: payload });
       setFormEmail(resetPasswordForm, response.email || payload.email);
-      setOtpDisplay(resetOtpCode, response.otp, response.otp_delivery);
+      setOtpDisplay(resetOtpCode);
       const otpInput = resetPasswordForm?.querySelector('input[name="otp"]');
       if (otpInput) {
         otpInput.value = "";

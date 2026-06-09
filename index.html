@@ -92,14 +92,14 @@
         <label>Password <input name="password" type="password" required autocomplete="current-password"></label>
         <button class="primary" type="submit">Sign in</button>
         <button class="link-button" type="button" data-auth-switch="forgot">Forgot password?</button>
-        <p class="hint">All users sign in here. Admin demo: admin@investsmart.local / password</p>
+        <p class="hint">All users sign in here. An OTP will be sent to the registered email address.</p>
       </form>
 
       <form id="login-otp-form" class="form-grid auth-form hidden">
         <div class="otp-card">
           <span>Login OTP</span>
           <strong id="login-otp-code">000000</strong>
-          <small>Demo mode only. In email mode, check your inbox.</small>
+          <small>Check your inbox and enter the OTP sent to your email.</small>
         </div>
         <input name="email" type="hidden">
         <label>OTP Code <input name="otp" inputmode="numeric" maxlength="6" required></label>
@@ -128,7 +128,7 @@
         <div class="otp-card">
           <span>Reset OTP</span>
           <strong id="reset-otp-code">000000</strong>
-          <small>Demo mode only. In email mode, check your inbox.</small>
+          <small>Check your inbox and enter the OTP sent to your email.</small>
         </div>
         <input name="email" type="hidden">
         <label>OTP Code <input name="otp" inputmode="numeric" maxlength="6" required></label>

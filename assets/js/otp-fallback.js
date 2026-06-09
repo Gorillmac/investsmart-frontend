@@ -8,7 +8,7 @@
     box.className = `auth-message ${type}`;
   }
 
-  function showOtpPanel(email, otp, minutes) {
+  function showOtpPanel(email, minutes) {
     const loginForm = $("#login-form");
     let otpForm = $("#login-otp-form");
     if (!otpForm) {
@@ -18,7 +18,6 @@
       otpForm.innerHTML = `
         <h2>Verify Login</h2>
         <p class="muted">Enter the OTP sent to your email address.</p>
-        <div class="otp-card">Login OTP: <strong id="login-otp-code"></strong></div>
         <input type="hidden" name="email">
         <label>OTP Code<input name="otp" inputmode="numeric" autocomplete="one-time-code" required></label>
         <button type="submit" class="btn primary">Verify OTP</button>
@@ -31,24 +30,15 @@
     otpForm.classList.remove("is-hidden", "hidden");
 
     const emailInput = otpForm.querySelector('[name="email"]');
-    const otpDisplay = $("#login-otp-code");
     const otpInput = otpForm.querySelector('[name="otp"]');
 
     if (emailInput) emailInput.value = email || "";
-    if (otpDisplay) {
-      const card = otpDisplay.closest(".otp-card");
-      otpDisplay.textContent = otp || "";
-      if (card) {
-        card.hidden = !otp;
-        card.classList.toggle("hidden", !otp);
-      }
-    }
     if (otpInput) {
       otpInput.value = "";
       otpInput.focus();
     }
 
-    setMessage(`Enter the OTP ${otp ? "shown below" : "sent to your email"}. It expires in ${minutes || 10} minutes.`, "success");
+    setMessage(`Enter the OTP sent to your email. It expires in ${minutes || 10} minutes.`, "success");
     return true;
   }
 
@@ -91,7 +81,7 @@
         try {
           const data = await postJson("login", { email, password });
           if (data.otp_required) {
-            showOtpPanel(data.email || email, data.otp, data.expires_in_minutes);
+            showOtpPanel(data.email || email, data.expires_in_minutes);
           }
         } catch (error) {
           setMessage(error.message, "error");
